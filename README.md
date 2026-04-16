@@ -10,32 +10,6 @@ A lightweight N-Gram language model implementation in Go for Japanese sentence c
 - Lightweight - runs on weak PCs (50-100MB RAM)
 - No external dependencies or large model downloads
 
-## Project Structure
-
-AI-AutoComplete/
-├── cmd/
-│   └── train/
-│       └── main.go
-├── internal/
-│   ├── data/
-│   │   └── loader.go
-│   ├── model/
-│   │   ├── ngram.go
-│   │   ├── layer.go
-│   │   ├── activation.go
-│   │   └── predictor.go
-│   ├── trainer/
-│   │   └── trainer.go
-│   ├── tokenizer/
-│   │   └── tokenizer.go
-│   ├── storage/
-│   │   └── storage.go
-│   └── ui/
-│       └── cli.go
-└── data/
-    ├── corpus.txt
-    └── grammar.csv
-
 ## Execution Flow
 
 STEP 1: Initial Command
