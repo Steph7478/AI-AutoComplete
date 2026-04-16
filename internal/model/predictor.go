@@ -17,9 +17,10 @@ func NewPredictor(m *NGramModel, tok *tokenizer.Tokenizer) *Predictor {
 	}
 }
 
-var stopTokens = map[string]bool{
-	".": true, "!": true, "?": true, "\n": true,
-	"。": true, "！": true, "？": true,
+var naturalEndings = map[string]bool{
+	"desu": true, "masu": true, "desu.": true, "masu.": true,
+	"gozaimasu": true, "deshita": true, "mashita": true,
+	"ka": true, "ka.": true, "ne": true, "yo": true,
 }
 
 func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
@@ -30,15 +31,21 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 
 	var result strings.Builder
 	result.WriteString(start)
+
 	currentTokens := p.tokenizer.Encode(start)
 
-	for range maxSteps {
-		if len(currentTokens) < 1 {
+	if len(currentTokens) == 1 && len(words) == 1 {
+		currentTokens = append(currentTokens, currentTokens[0])
+	}
+
+	for step := 0; step < maxSteps; step++ {
+		if len(currentTokens) < 2 {
 			break
 		}
 
-		lastToken := currentTokens[len(currentTokens)-1]
-		probs := p.model.Forward(lastToken, lastToken)
+		token1 := currentTokens[len(currentTokens)-2]
+		token2 := currentTokens[len(currentTokens)-1]
+		probs := p.model.Forward(token1, token2)
 
 		bestIdx := 0
 		bestProb := 0.0
@@ -54,6 +61,7 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 		}
 
 		nextWord := p.tokenizer.Decode([]int{bestIdx})
+
 		if nextWord == "<UNK>" {
 			break
 		}
@@ -61,35 +69,13 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 		result.WriteString(" " + nextWord)
 		currentTokens = append(currentTokens, bestIdx)
 
-		if p.isStopToken(nextWord) {
-			break
+		if naturalEndings[nextWord] {
+			lastWord := p.tokenizer.Decode([]int{currentTokens[len(currentTokens)-1]})
+			if naturalEndings[lastWord] {
+				break
+			}
 		}
 	}
 
 	return result.String()
-}
-
-func (p *Predictor) PredictNext(word string) string {
-	tokens := p.tokenizer.Encode(word)
-	if len(tokens) == 0 {
-		return "<UNK>"
-	}
-
-	lastToken := tokens[len(tokens)-1]
-	probs := p.model.Forward(lastToken, lastToken)
-
-	bestIdx := 0
-	bestProb := 0.0
-	for i, prob := range probs {
-		if prob > bestProb {
-			bestProb = prob
-			bestIdx = i
-		}
-	}
-
-	return p.tokenizer.Decode([]int{bestIdx})
-}
-
-func (p *Predictor) isStopToken(word string) bool {
-	return stopTokens[word]
 }
