@@ -4,7 +4,6 @@ import (
 	"AI-AutoComplete/internal/model"
 	"fmt"
 	"math"
-	"math/rand"
 )
 
 type NGramTrainer struct {
@@ -54,7 +53,7 @@ func (t *NGramTrainer) TrainStep(token1, token2, token3 int) float64 {
 	embGrad2 := make([]float64, len(emb2))
 
 	for i := range emb1 {
-		for j := 0; j < len(gradient); j++ {
+		for j := range gradient {
 			embGrad1[i] += gradient[j] * linear.Weights[i][j]
 		}
 	}
@@ -88,13 +87,9 @@ func (t *NGramTrainer) Train(tokens []int, epochs int) {
 			count++
 		}
 
-		if epoch%50 == 0 {
+		if epoch%10 == 0 || epoch == epochs-1 {
 			avgLoss := totalLoss / float64(count)
 			fmt.Printf("Epoch %d, Loss: %.4f\n", epoch, avgLoss)
 		}
 	}
-}
-
-func init() {
-	rand.Seed(42)
 }

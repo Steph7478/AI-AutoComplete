@@ -118,14 +118,3 @@ func (db *Database) GetAllEntries() []Entry {
 	}
 	return all
 }
-
-func (db *Database) Search(query string) []Entry {
-	query = strings.ToLower(query)
-	var results []Entry
-	for word, entry := range db.entries {
-		if strings.Contains(word, query) {
-			results = append(results, entry)
-		}
-	}
-	return results
-}

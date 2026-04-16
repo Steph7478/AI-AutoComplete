@@ -18,9 +18,9 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("=== TRAIN N-GRAM MODEL FROM CSV ===\n")
-	fmt.Println("1. Train new model from corpus")
+	fmt.Println("1. Train new model from CSV")
 	fmt.Println("2. Test trained model (sentence completion)")
-	fmt.Println("3. Load grammar CSV only")
+	fmt.Println("3. Search CSV only (no model)")
 	fmt.Print("\nChoose (1/2/3): ")
 
 	option, _ := reader.ReadString('\n')
@@ -32,27 +32,29 @@ func main() {
 	case "2":
 		testModel()
 	case "3":
-		loadGrammarOnly()
+		searchCSVOnly()
 	default:
 		fmt.Println("Invalid option")
 	}
 }
 
 func trainModel(reader *bufio.Reader) {
-	fmt.Println("\n=== TRAINING FROM CORPUS ===\n")
+	fmt.Println("\n=== TRAINING FROM CSV ===")
 
-	corpusPath := "data/corpus.txt"
-	if _, err := os.Stat(corpusPath); os.IsNotExist(err) {
-		fmt.Println("No corpus.txt found. Generating from CSV...")
-		generateCorpusFromCSV()
+	transDB := data.NewTranslationDB()
+	csvPath := "data/translations_small.csv"
+
+	if err := transDB.LoadCSV(csvPath); err != nil {
+		log.Fatal("Error loading CSV:", err)
 	}
 
-	dataBytes, err := os.ReadFile(corpusPath)
-	if err != nil {
-		log.Fatal("Error reading corpus:", err)
+	var corpusBuilder strings.Builder
+	for japanese := range transDB.GetAllEntries() {
+		corpusBuilder.WriteString(japanese + "\n")
 	}
+	text := corpusBuilder.String()
 
-	text := string(dataBytes)
+	fmt.Printf("✅ Generated corpus with %d sentences\n", len(transDB.GetAllEntries()))
 	fmt.Printf("✅ Corpus loaded: %d characters\n", len(text))
 
 	tok := tokenizer.NewTokenizer()
@@ -66,19 +68,19 @@ func trainModel(reader *bufio.Reader) {
 	myModel := model.NewNGramModel(tok.VocabSize, embeddingDim)
 	fmt.Printf("✅ Model created\n\n")
 
-	fmt.Print("How many epochs? (default 500): ")
+	fmt.Print("How many epochs? (default 50 for quick training): ")
 	epochsStr, _ := reader.ReadString('\n')
-	epochs := 500
+	epochs := 50
 	fmt.Sscanf(epochsStr, "%d", &epochs)
 
-	t := trainer.NewNGramTrainer(myModel, 0.01)
+	t := trainer.NewNGramTrainer(myModel, 0.05)
 	t.Train(tokens, epochs)
 
 	storage.SaveModel(myModel, tok)
 	fmt.Println("\n✅ Model saved to internal/data/")
 
-	predictor := model.NewPredictor(myModel, tok)
-	cli := ui.NewCLI(predictor)
+	predictor := model.NewPredictor(myModel, tok, transDB)
+	cli := ui.NewCLI(predictor, transDB)
 	cli.Run()
 }
 
@@ -93,48 +95,35 @@ func testModel() {
 
 	fmt.Printf("✅ Model loaded\n\n")
 
-	predictor := model.NewPredictor(myModel, tok)
-	cli := ui.NewCLI(predictor)
+	transDB := data.NewTranslationDB()
+	csvPath := "data/translations_small.csv"
+	if err := transDB.LoadCSV(csvPath); err != nil {
+		fmt.Printf("⚠️ Could not load translations: %v\n", err)
+	}
+
+	predictor := model.NewPredictor(myModel, tok, transDB)
+	cli := ui.NewCLI(predictor, transDB)
 	cli.Run()
 }
 
-func loadGrammarOnly() {
-	fmt.Println("\n=== LOADING GRAMMAR CSV ===\n")
+func searchCSVOnly() {
+	fmt.Println("\n=== CSV SEARCH MODE ===\n")
 
-	db := data.NewDatabase()
-	csvPaths := []string{
-		"data/grammar.csv",
-		"./data/grammar.csv",
+	transDB := data.NewTranslationDB()
+	csvPath := "data/translations_small.csv"
+
+	if err := transDB.LoadCSV(csvPath); err != nil {
+		log.Fatal("Error loading CSV:", err)
 	}
 
-	loaded := false
-	for _, path := range csvPaths {
-		if err := db.LoadCSV(path); err == nil {
-			fmt.Printf("✅ Loaded grammar from: %s\n", path)
-			loaded = true
-			break
-		}
-	}
+	fmt.Printf("✅ Loaded %d translations\n", len(transDB.GetAllEntries()))
+	fmt.Println("Type a Japanese phrase to get the English translation")
+	fmt.Println("Type 'exit' to quit")
 
-	if !loaded {
-		fmt.Println("❌ Could not find grammar.csv")
-		return
-	}
-
-	grammarCLI(db)
-}
-
-func grammarCLI(db *data.Database) {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("\n=== GRAMMAR LOOKUP ===")
-	fmt.Println("Commands:")
-	fmt.Println("  explain <word>   - Explain a word")
-	fmt.Println("  analyze <phrase> - Analyze a phrase")
-	fmt.Println("  type <word>      - Get word type")
-	fmt.Println("  exit             - Quit\n")
 
 	for {
-		fmt.Print("> ")
+		fmt.Print("JP: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			break
@@ -150,55 +139,25 @@ func grammarCLI(db *data.Database) {
 			continue
 		}
 
-		parts := strings.SplitN(input, " ", 2)
-		cmd := parts[0]
-		arg := ""
-		if len(parts) > 1 {
-			arg = parts[1]
+		translation := transDB.GetTranslation(input)
+		if translation != "" {
+			fmt.Printf("EN: %s\n", translation)
+		} else {
+			found := false
+			for jp, en := range transDB.GetAllEntries() {
+				if strings.Contains(jp, input) {
+					fmt.Printf("JP: %s\n", jp)
+					fmt.Printf("EN: %s\n", en)
+					found = true
+					break
+				}
+			}
+			if !found {
+				fmt.Printf("EN: (not found in CSV)\n")
+			}
 		}
-
-		switch cmd {
-		case "explain":
-			if arg == "" {
-				fmt.Println("Usage: explain <word>")
-				continue
-			}
-			fmt.Printf("\n%s\n\n", db.Explain(arg))
-		case "analyze":
-			if arg == "" {
-				fmt.Println("Usage: analyze <phrase>")
-				continue
-			}
-			fmt.Printf("\n%s\n\n", db.AnalyzePhrase(arg))
-		case "type":
-			if arg == "" {
-				fmt.Println("Usage: type <word>")
-				continue
-			}
-			fmt.Printf("\n%s\n\n", db.GetWordType(arg))
-		default:
-			fmt.Printf("\n%s\n\n", db.Explain(input))
-		}
-	}
-}
-
-func generateCorpusFromCSV() {
-	db := data.NewDatabase()
-	if err := db.LoadCSV("data/grammar.csv"); err != nil {
-		log.Fatal("Error loading CSV:", err)
+		fmt.Println()
 	}
 
-	file, err := os.Create("data/corpus.txt")
-	if err != nil {
-		log.Fatal("Error creating corpus:", err)
-	}
-	defer file.Close()
-
-	for _, entry := range db.GetAllEntries() {
-		line := fmt.Sprintf("%s is a %s. %s. Example: %s\n",
-			entry.Word, entry.Type, entry.Explanation, entry.Example)
-		file.WriteString(line)
-	}
-
-	fmt.Printf("Generated corpus.txt with %d entries\n", len(db.GetAllEntries()))
+	fmt.Println("\nSayonara!")
 }

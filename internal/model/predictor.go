@@ -1,32 +1,37 @@
 package model
 
 import (
+	"AI-AutoComplete/internal/data"
 	"AI-AutoComplete/internal/tokenizer"
 	"strings"
 )
 
 type Predictor struct {
-	model     *NGramModel
-	tokenizer *tokenizer.Tokenizer
+	model        *NGramModel
+	tokenizer    *tokenizer.Tokenizer
+	translations *data.TranslationDB
 }
 
-func NewPredictor(m *NGramModel, tok *tokenizer.Tokenizer) *Predictor {
+func NewPredictor(m *NGramModel, tok *tokenizer.Tokenizer, transDB *data.TranslationDB) *Predictor {
 	return &Predictor{
-		model:     m,
-		tokenizer: tok,
+		model:        m,
+		tokenizer:    tok,
+		translations: transDB,
 	}
-}
-
-var naturalEndings = map[string]bool{
-	"desu": true, "masu": true, "desu.": true, "masu.": true,
-	"gozaimasu": true, "deshita": true, "mashita": true,
-	"ka": true, "ka.": true, "ne": true, "yo": true,
 }
 
 func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 	words := strings.Fields(start)
 	if len(words) == 0 {
 		return start
+	}
+
+	if p.translations != nil {
+		for jp := range p.translations.GetAllEntries() {
+			if strings.HasPrefix(jp, start) {
+				return jp
+			}
+		}
 	}
 
 	var result strings.Builder
@@ -68,13 +73,6 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 
 		result.WriteString(" " + nextWord)
 		currentTokens = append(currentTokens, bestIdx)
-
-		if naturalEndings[nextWord] {
-			lastWord := p.tokenizer.Decode([]int{currentTokens[len(currentTokens)-1]})
-			if naturalEndings[lastWord] {
-				break
-			}
-		}
 	}
 
 	return result.String()
