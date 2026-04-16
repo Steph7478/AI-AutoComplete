@@ -1,0 +1,93 @@
+cat << 'EOF' > .gitignore
+# Binários e executáveis
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+AI-AutoComplete.exe
+
+# Arquivos de build
+/bin/
+/dist/
+/build/
+/tmp/
+
+# Arquivos do Go
+/vendor/
+*.mod
+*.sum
+/go.sum.bak
+/go.mod.bak
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+.project
+.classpath
+.settings/
+
+# Arquivos de log
+*.log
+logs/
+*.pid
+*.seed
+
+# Dados gerados pelo treinamento
+internal/data/*.json
+internal/data/*.bin
+!internal/data/.gitkeep
+
+# Dados locais
+data/corpus.txt
+!data/.gitkeep
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# OS específico
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Arquivos de cobertura de teste
+*.cover
+*.coverprofile
+coverage.out
+coverage.html
+
+# Debug
+debug
+__debug_bin
+*.dbs
+*.dbs~
+
+# Configurações locais
+.env
+.env.local
+.env.*.local
+config.local.yaml
+
+# Ollama
+ollama/
+*.gguf
+*.bin
+
+# Arquivos grandes
+*.zip
+*.tar.gz
+*.7z
+*.rar
+EOF
