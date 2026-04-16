@@ -40,35 +40,35 @@ func (t *NGramTrainer) TrainStep(token1, token2, token3 int) float64 {
 	copy(combined[len(emb1):], emb2)
 
 	linear := t.Model.GetLinear()
-	for i := 0; i < len(combined); i++ {
-		for j := 0; j < len(gradient); j++ {
+	for i := range combined {
+		for j := range gradient {
 			linear.Weights[i][j] -= t.LearningRate * gradient[j] * combined[i]
 		}
 	}
 
-	for j := 0; j < len(gradient); j++ {
+	for j := range gradient {
 		linear.Biases[j] -= t.LearningRate * gradient[j]
 	}
 
 	embGrad1 := make([]float64, len(emb1))
 	embGrad2 := make([]float64, len(emb2))
 
-	for i := 0; i < len(emb1); i++ {
+	for i := range emb1 {
 		for j := 0; j < len(gradient); j++ {
 			embGrad1[i] += gradient[j] * linear.Weights[i][j]
 		}
 	}
 
-	for i := 0; i < len(emb2); i++ {
-		for j := 0; j < len(gradient); j++ {
+	for i := range emb2 {
+		for j := range gradient {
 			embGrad2[i] += gradient[j] * linear.Weights[len(emb1)+i][j]
 		}
 	}
 
-	for i := 0; i < len(embGrad1); i++ {
+	for i := range embGrad1 {
 		t.Model.GetEmbedding().UpdateAt(token1, i, t.LearningRate*embGrad1[i])
 	}
-	for i := 0; i < len(embGrad2); i++ {
+	for i := range embGrad2 {
 		t.Model.GetEmbedding().UpdateAt(token2, i, t.LearningRate*embGrad2[i])
 	}
 
@@ -78,7 +78,7 @@ func (t *NGramTrainer) TrainStep(token1, token2, token3 int) float64 {
 func (t *NGramTrainer) Train(tokens []int, epochs int) {
 	fmt.Printf("Training N-Gram model with %d tokens...\n", len(tokens))
 
-	for epoch := 0; epoch < epochs; epoch++ {
+	for epoch := range epochs {
 		totalLoss := 0.0
 		count := 0
 

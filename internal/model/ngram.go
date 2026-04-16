@@ -48,9 +48,9 @@ func NewEmbedding(vocabSize, embeddingDim int) *Embedding {
 		Weights: make([][]float64, vocabSize),
 		Dim:     embeddingDim,
 	}
-	for i := 0; i < vocabSize; i++ {
+	for i := range vocabSize {
 		emb.Weights[i] = make([]float64, embeddingDim)
-		for j := 0; j < embeddingDim; j++ {
+		for j := range embeddingDim {
 			emb.Weights[i][j] = (rand.Float64() - 0.5) * 0.1
 		}
 	}

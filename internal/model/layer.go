@@ -17,7 +17,7 @@ func NewLinearLayer(inputDim, outputDim int) *LinearLayer {
 		Biases:  make([]float64, outputDim),
 	}
 
-	for i := 0; i < inputDim; i++ {
+	for i := range inputDim {
 		layer.Weights[i] = make([]float64, outputDim)
 		for j := 0; j < outputDim; j++ {
 			layer.Weights[i][j] = (rand.Float64() - 0.5) * 0.1
@@ -30,7 +30,7 @@ func (l *LinearLayer) Forward(input []float64) []float64 {
 	output := make([]float64, len(l.Biases))
 	for j := 0; j < len(l.Biases); j++ {
 		sum := l.Biases[j]
-		for i := 0; i < len(input); i++ {
+		for i := range input {
 			sum += input[i] * l.Weights[i][j]
 		}
 		output[j] = sum

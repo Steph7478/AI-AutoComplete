@@ -28,10 +28,11 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 		return start
 	}
 
-	result := start
+	var result strings.Builder
+	result.WriteString(start)
 	currentTokens := p.tokenizer.Encode(start)
 
-	for step := 0; step < maxSteps; step++ {
+	for range maxSteps {
 		if len(currentTokens) < 1 {
 			break
 		}
@@ -57,7 +58,7 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 			break
 		}
 
-		result += " " + nextWord
+		result.WriteString(" " + nextWord)
 		currentTokens = append(currentTokens, bestIdx)
 
 		if p.isStopToken(nextWord) {
@@ -65,7 +66,7 @@ func (p *Predictor) CompleteSentence(start string, maxSteps int) string {
 		}
 	}
 
-	return result
+	return result.String()
 }
 
 func (p *Predictor) PredictNext(word string) string {
