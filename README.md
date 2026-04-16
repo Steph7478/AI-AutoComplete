@@ -80,16 +80,25 @@ go run cmd/train/main.go
 ## 📝 Example Usage
 
 You: 最近
+<br/>
 JP: 最近考えることが多過ぎる。
+<br/>
 EN: I have too many things on my mind these days.
+<br/>
 
 You: 私は
+<br/>
 JP: 私はキャビアを食べた。
+<br/>
 EN: I ate caviar.
+<br/>
 
 You: すぐに
+<br/>
 JP: すぐに戻ります。
+<br/>
 EN: I will be back soon.
+<br/>
 
 ## 🔬 Technical Components
 
